@@ -31,9 +31,9 @@
         <!-- Mensaje de estado/alerta -->
         <div id="alertBox" class="hidden mb-4 p-3 rounded text-sm font-medium no-print"></div>
 
-        <!-- Panel de Configuración GitHub (Visible para el Admin) -->
+        <!-- Panel de Configuración GitHub (Solo visible para el Administrador) -->
         <section id="configSection" class="hidden bg-yellow-50 border border-yellow-300 p-4 rounded-lg mb-4 text-xs no-print">
-            <h3 class="font-bold text-gray-800 mb-2">⚙️ Configuración de Conexión a GitHub</h3>
+            <h3 class="font-bold text-gray-800 mb-2">⚙️ Configuración de Conexión a GitHub (Solo Administrador)</h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <input type="text" id="ghOwner" placeholder="Usuario de GitHub (ej: ruben)" class="p-2 border rounded">
                 <input type="text" id="ghRepo" placeholder="Nombre del Repositorio (ej: futbol-app)" class="p-2 border rounded">
@@ -215,9 +215,8 @@
     <script>
         let currentRole = 'player';
         let appState = null;
-        let fileSHA = null; // Necesario para actualizar el archivo en GitHub API
+        let fileSHA = null;
 
-        // Configuración por defecto
         let config = {
             owner: localStorage.getItem('gh_owner') || '',
             repo: localStorage.getItem('gh_repo') || '',
@@ -241,21 +240,46 @@
             localStorage.setItem('gh_repo', config.repo);
             localStorage.setItem('gh_token', config.token);
 
-            showAlert("Configuración de GitHub guardada.", "bg-green-100 text-green-800");
+            showAlert("Configuración guardada correctamente.", "bg-green-100 text-green-800");
             loadDataFromGitHub();
         }
 
         async function loadDataFromGitHub() {
+            // Auto-detectar usuario y repositorio si está en GitHub Pages
+            const hostParts = window.location.hostname.split('.');
+            const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
+
+            if (hostParts.includes('github') && pathParts.length > 0) {
+                config.owner = config.owner || hostParts[0];
+                config.repo = config.repo || pathParts[0];
+            }
+
+            // 1. Carga Pública Directa (Suficiente para los jugadores sin requerir Token)
+            if (config.owner && config.repo) {
+                const rawPublicUrl = `https://${config.owner}.github.io/${config.repo}/data/state.json?t=${new Date().getTime()}`;
+                try {
+                    const publicResponse = await fetch(rawPublicUrl);
+                    if (publicResponse.ok) {
+                        appState = await publicResponse.json();
+                        renderAll();
+                        return;
+                    }
+                } catch (e) {
+                    console.log("Accediendo vía API...");
+                }
+            }
+
+            // 2. Carga vía API (Requerida para el administrador para obtener el SHA del archivo)
             if (!config.owner || !config.repo) {
-                showAlert("Por favor, ingresa los datos de tu repositorio en la configuración.", "bg-yellow-100 text-yellow-800");
+                showAlert("Para configurar por primera vez, ingresa en Modo Administrador.", "bg-blue-100 text-blue-800");
                 return;
             }
 
-            const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/data/state.json`;
+            const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/data/state.json`;
             const headers = config.token ? { 'Authorization': `token ${config.token}` } : {};
 
             try {
-                const response = await fetch(url, { headers, cache: 'no-store' });
+                const response = await fetch(apiUrl, { headers, cache: 'no-store' });
                 if (response.ok) {
                     const data = await response.json();
                     fileSHA = data.sha;
@@ -263,17 +287,27 @@
                     appState = JSON.parse(decodedContent);
                     renderAll();
                 } else {
-                    showAlert("No se pudo cargar el archivo data/state.json desde GitHub.", "bg-red-100 text-red-800");
+                    showAlert("No se encontró el archivo data/state.json en el repositorio.", "bg-red-100 text-red-800");
                 }
             } catch (err) {
-                showAlert("Error de conexión al obtener datos de GitHub.", "bg-red-100 text-red-800");
+                showAlert("Error al conectar con GitHub.", "bg-red-100 text-red-800");
             }
         }
 
         async function syncStateToGitHub(commitMessage) {
             if (!config.owner || !config.repo || !config.token) {
-                showAlert("Se requiere el Token de GitHub para guardar los cambios.", "bg-red-100 text-red-800");
+                showAlert("Se requiere configurar el Token en Modo Administrador para guardar cambios.", "bg-red-100 text-red-800");
                 return false;
+            }
+
+            // Asegurar que se tenga el SHA actual
+            if (!fileSHA) {
+                const getUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/data/state.json`;
+                const getRes = await fetch(getUrl, { headers: { 'Authorization': `token ${config.token}` } });
+                if (getRes.ok) {
+                    const getData = await getRes.json();
+                    fileSHA = getData.sha;
+                }
             }
 
             const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/data/state.json`;
@@ -296,15 +330,15 @@
                 if (response.ok) {
                     const resData = await response.json();
                     fileSHA = resData.content.sha;
-                    showAlert("Cambios guardados exitosamente en GitHub.", "bg-green-100 text-green-800");
+                    showAlert("Cambios guardados en GitHub con éxito.", "bg-green-100 text-green-800");
                     renderAll();
                     return true;
                 } else {
-                    showAlert("Error al guardar en GitHub. Verifica tu Token o permisos.", "bg-red-100 text-red-800");
+                    showAlert("Error al guardar. Verifica tu Token de GitHub.", "bg-red-100 text-red-800");
                     return false;
                 }
             } catch (err) {
-                showAlert("Error de red al intentar guardar en GitHub.", "bg-red-100 text-red-800");
+                showAlert("Error de conexión al guardar.", "bg-red-100 text-red-800");
                 return false;
             }
         }
