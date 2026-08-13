@@ -60,8 +60,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-600 mb-1">Comprobante de Pago (JPG/PNG/PDF):</label>
-                            <input type="file" id="receiptFile" accept=".jpg,.jpeg,.png,.pdf" class="w-full text-xs border p-1 rounded">
+                            <label class="block text-xs text-gray-600 mb-1">Subir Comprobante de Pago (Imagen o PDF):</label>
+                            <input type="file" id="receiptFile" accept="image/*,.pdf" required class="w-full text-xs border p-1 rounded">
                         </div>
                         <button type="submit" id="btnSubmitPlayer" class="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded font-bold text-sm shadow">
                             Confirmar Mi Asistencia
@@ -210,6 +210,15 @@
         </main>
     </div>
 
+    <!-- Modal para visualizar comprobantes -->
+    <div id="receiptModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+        <div class="bg-white p-4 rounded-lg max-w-lg w-full max-h-screen overflow-y-auto relative">
+            <button onclick="closeReceiptModal()" class="absolute top-2 right-2 text-gray-600 text-lg font-bold">✕</button>
+            <h3 id="modalTitle" class="font-bold text-sm mb-3 text-blue-900">Comprobante de Pago</h3>
+            <div id="modalContent" class="flex justify-center"></div>
+        </div>
+    </div>
+
     <script>
         let currentRole = 'player';
         let appState = null;
@@ -257,6 +266,8 @@
                     const publicResponse = await fetch(rawPublicUrl);
                     if (publicResponse.ok) {
                         appState = await publicResponse.json();
+                        // Normalización de datos antiguos
+                        if (!appState.receipts) appState.receipts = {};
                         renderAll();
                         return;
                     }
@@ -265,9 +276,7 @@
                 }
             }
 
-            if (!config.owner || !config.repo) {
-                return;
-            }
+            if (!config.owner || !config.repo) return;
 
             const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/data/state.json`;
             const headers = config.token ? { 'Authorization': `token ${config.token}` } : {};
@@ -279,6 +288,7 @@
                     fileSHA = data.sha;
                     const decodedContent = decodeURIComponent(escape(atob(data.content)));
                     appState = JSON.parse(decodedContent);
+                    if (!appState.receipts) appState.receipts = {};
                     renderAll();
                 }
             } catch (err) {
@@ -350,6 +360,7 @@
                     document.getElementById('playerView').classList.add('hidden');
                     document.getElementById('adminView').classList.remove('hidden');
                     document.getElementById('configSection').classList.remove('hidden');
+                    renderLists();
                 } else {
                     alert("Contraseña incorrecta");
                 }
@@ -359,6 +370,7 @@
                 document.getElementById('adminView').classList.add('hidden');
                 document.getElementById('configSection').classList.add('hidden');
                 document.getElementById('playerView').classList.remove('hidden');
+                renderLists();
             }
         }
 
@@ -399,7 +411,12 @@
             cList.innerHTML = appState.confirmed.map(p => `
                 <li class="flex justify-between items-center bg-gray-50 p-1.5 rounded border">
                     <span>${p}</span>
-                    ${currentRole === 'admin' ? `<button onclick="removePlayer('${p}', 'confirmed')" class="text-xs text-red-600 hover:underline">Eliminar</button>` : ''}
+                    <div class="flex items-center gap-2">
+                        ${appState.receipts && appState.receipts[p] ? 
+                            `<button onclick="viewReceipt('${p}')" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📎 Ver Comprobante</button>` : 
+                            `<span class="text-xs text-gray-400">Sin archivo</span>`}
+                        ${currentRole === 'admin' ? `<button onclick="removePlayer('${p}', 'confirmed')" class="text-xs text-red-600 hover:underline">Eliminar</button>` : ''}
+                    </div>
                 </li>
             `).join('');
 
@@ -407,7 +424,12 @@
             rList.innerHTML = appState.reserves.map(p => `
                 <li class="flex justify-between items-center bg-gray-50 p-1.5 rounded border">
                     <span>${p}</span>
-                    ${currentRole === 'admin' ? `<button onclick="removePlayer('${p}', 'reserve')" class="text-xs text-orange-600 hover:underline">Eliminar</button>` : ''}
+                    <div class="flex items-center gap-2">
+                        ${appState.receipts && appState.receipts[p] ? 
+                            `<button onclick="viewReceipt('${p}')" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📎 Ver Comprobante</button>` : 
+                            `<span class="text-xs text-gray-400">Sin archivo</span>`}
+                        ${currentRole === 'admin' ? `<button onclick="removePlayer('${p}', 'reserve')" class="text-xs text-orange-600 hover:underline">Eliminar</button>` : ''}
+                    </div>
                 </li>
             `).join('');
         }
@@ -415,30 +437,72 @@
         async function handlePlayerSubmit(e) {
             e.preventDefault();
             const name = document.getElementById('playerSelect').value;
+            const fileInput = document.getElementById('receiptFile');
             if (!name) return;
 
-            let targetList = "";
-            if (appState.confirmed.length < 18) {
-                appState.confirmed.push(name);
-                targetList = "Lista Principal de Confirmados";
-            } else if (appState.reserves.length < 6) {
-                appState.reserves.push(name);
-                targetList = "Lista de Reserva";
-            } else {
-                alert("Los cupos principales y de reserva ya están completos.");
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Es obligatorio adjuntar el comprobante de pago.");
                 return;
             }
 
-            renderAll();
+            const file = fileInput.files[0];
+            const reader = new FileReader();
 
-            // Intenta guardar en GitHub si el Admin dejó su token guardado en el navegador local
-            const synced = await syncStateToGitHub(`Confirmación de ${name}`);
-            
-            if (synced) {
-                showAlert(`¡Excelente! ${name} ha quedado anotado en la ${targetList}.`, "bg-green-100 text-green-800");
-            } else {
-                showAlert(`¡Solicitud registrada localmente! ${name} fue añadido a la ${targetList}.`, "bg-green-100 text-green-800");
+            reader.onload = async function(evt) {
+                const base64Data = evt.target.result;
+
+                if (!appState.receipts) appState.receipts = {};
+                appState.receipts[name] = base64Data;
+
+                let targetList = "";
+                if (appState.confirmed.length < 18) {
+                    appState.confirmed.push(name);
+                    targetList = "Lista Principal de Confirmados";
+                } else if (appState.reserves.length < 6) {
+                    appState.reserves.push(name);
+                    targetList = "Lista de Reserva";
+                } else {
+                    alert("Los cupos principales y de reserva ya están completos.");
+                    return;
+                }
+
+                renderAll();
+                document.getElementById('receiptFile').value = '';
+
+                const synced = await syncStateToGitHub(`Confirmación y comprobante de ${name}`);
+                if (synced) {
+                    showAlert(`¡Excelente! ${name} ha quedado anotado en la ${targetList}.`, "bg-green-100 text-green-800");
+                } else {
+                    showAlert(`¡Registrado! ${name} fue añadido a la ${targetList}.`, "bg-green-100 text-green-800");
+                }
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        function viewReceipt(playerName) {
+            const dataUrl = appState.receipts ? appState.receipts[playerName] : null;
+            if (!dataUrl) {
+                alert("No hay comprobante registrado para este jugador.");
+                return;
             }
+
+            document.getElementById('modalTitle').innerText = `Comprobante de Pago - ${playerName}`;
+            const container = document.getElementById('modalContent');
+
+            if (dataUrl.startsWith("data:image")) {
+                container.innerHTML = `<img src="${dataUrl}" class="max-w-full h-auto rounded border shadow">`;
+            } else if (dataUrl.startsWith("data:application/pdf")) {
+                container.innerHTML = `<embed src="${dataUrl}" type="application/pdf" width="100%" height="400px" class="rounded border">`;
+            } else {
+                container.innerHTML = `<a href="${dataUrl}" download="comprobante_${playerName}" class="bg-blue-800 text-white px-4 py-2 rounded text-xs font-bold">Descargar Comprobante</a>`;
+            }
+
+            document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').classList.add('hidden');
         }
 
         async function removePlayer(name, listType) {
@@ -450,6 +514,10 @@
                 }
             } else {
                 appState.reserves = appState.reserves.filter(p => p !== name);
+            }
+
+            if (appState.receipts && appState.receipts[name]) {
+                delete appState.receipts[name];
             }
 
             renderAll();
@@ -569,6 +637,7 @@
             appState.confirmed = [];
             appState.reserves = [];
             appState.expenses = [];
+            appState.receipts = {};
 
             renderAll();
             await syncStateToGitHub("Archivado de partido y reinicio de listas");
