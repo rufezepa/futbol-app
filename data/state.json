@@ -36,10 +36,9 @@
     "Jugador 29",
     "Jugador 30"
   ],
-  "confirmed": [
-    "Pincho"
-  ],
+  "confirmed": [],
   "reserves": [],
   "expenses": [],
-  "history": []
+  "history": [],
+  "receipts": {}
 }
