@@ -266,7 +266,6 @@
                     const publicResponse = await fetch(rawPublicUrl);
                     if (publicResponse.ok) {
                         appState = await publicResponse.json();
-                        // Normalización de datos antiguos
                         if (!appState.receipts) appState.receipts = {};
                         renderAll();
                         return;
@@ -413,9 +412,9 @@
                     <span>${p}</span>
                     <div class="flex items-center gap-2">
                         ${appState.receipts && appState.receipts[p] ? 
-                            `<button onclick="viewReceipt('${p}')" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📎 Ver Comprobante</button>` : 
+                            `<button onclick="viewReceipt('${p}')" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📎 Comprobante</button>` : 
                             `<span class="text-xs text-gray-400">Sin archivo</span>`}
-                        ${currentRole === 'admin' ? `<button onclick="removePlayer('${p}', 'confirmed')" class="text-xs text-red-600 hover:underline">Eliminar</button>` : ''}
+                        <button onclick="cancelRegistration('${p}', 'confirmed')" class="text-xs text-red-600 hover:underline font-semibold">Cancelar</button>
                     </div>
                 </li>
             `).join('');
@@ -426,9 +425,9 @@
                     <span>${p}</span>
                     <div class="flex items-center gap-2">
                         ${appState.receipts && appState.receipts[p] ? 
-                            `<button onclick="viewReceipt('${p}')" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📎 Ver Comprobante</button>` : 
+                            `<button onclick="viewReceipt('${p}')" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">📎 Comprobante</button>` : 
                             `<span class="text-xs text-gray-400">Sin archivo</span>`}
-                        ${currentRole === 'admin' ? `<button onclick="removePlayer('${p}', 'reserve')" class="text-xs text-orange-600 hover:underline">Eliminar</button>` : ''}
+                        <button onclick="cancelRegistration('${p}', 'reserve')" class="text-xs text-orange-600 hover:underline font-semibold">Cancelar</button>
                     </div>
                 </li>
             `).join('');
@@ -480,6 +479,34 @@
             reader.readAsDataURL(file);
         }
 
+        async function cancelRegistration(name, listType) {
+            const now = new Date();
+            const matchDateObj = new Date(appState.match.date + 'T12:00:00');
+
+            if (now > matchDateObj) {
+                alert(`Cancelación realizada después de las 12:00 hrs del día del partido. Se aplica multa de 10 Bs a ${name}.`);
+            } else {
+                alert(`Cancelación realizada a tiempo.`);
+            }
+
+            if (listType === 'confirmed') {
+                appState.confirmed = appState.confirmed.filter(p => p !== name);
+                if (appState.reserves.length > 0) {
+                    const promoted = appState.reserves.shift();
+                    appState.confirmed.push(promoted);
+                }
+            } else {
+                appState.reserves = appState.reserves.filter(p => p !== name);
+            }
+
+            if (appState.receipts && appState.receipts[name]) {
+                delete appState.receipts[name];
+            }
+
+            renderAll();
+            await syncStateToGitHub(`Cancelación de asistencia: ${name}`);
+        }
+
         function viewReceipt(playerName) {
             const dataUrl = appState.receipts ? appState.receipts[playerName] : null;
             if (!dataUrl) {
@@ -503,25 +530,6 @@
 
         function closeReceiptModal() {
             document.getElementById('receiptModal').classList.add('hidden');
-        }
-
-        async function removePlayer(name, listType) {
-            if (listType === 'confirmed') {
-                appState.confirmed = appState.confirmed.filter(p => p !== name);
-                if (appState.reserves.length > 0) {
-                    const promoted = appState.reserves.shift();
-                    appState.confirmed.push(promoted);
-                }
-            } else {
-                appState.reserves = appState.reserves.filter(p => p !== name);
-            }
-
-            if (appState.receipts && appState.receipts[name]) {
-                delete appState.receipts[name];
-            }
-
-            renderAll();
-            await syncStateToGitHub(`Remoción de jugador: ${name}`);
         }
 
         function renderPlayersAdminGrid() {
