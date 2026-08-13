@@ -33,13 +33,13 @@
 
         <!-- Panel de Configuración GitHub (Solo visible para el Administrador) -->
         <section id="configSection" class="hidden bg-yellow-50 border border-yellow-300 p-4 rounded-lg mb-4 text-xs no-print">
-            <h3 class="font-bold text-gray-800 mb-2">⚙️ Configuración de Conexión a GitHub (Solo Administrador)</h3>
+            <h3 class="font-bold text-gray-800 mb-2">⚙️ Configuración del Administrador (Solo Rubén)</h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <input type="text" id="ghOwner" placeholder="Usuario de GitHub (ej: ruben)" class="p-2 border rounded">
                 <input type="text" id="ghRepo" placeholder="Nombre del Repositorio (ej: futbol-app)" class="p-2 border rounded">
                 <input type="password" id="ghToken" placeholder="Personal Access Token (PAT)" class="p-2 border rounded">
             </div>
-            <button onclick="saveGitHubConfig()" class="mt-2 bg-blue-800 text-white px-3 py-1 rounded font-bold">Guardar Configuración</button>
+            <button onclick="saveGitHubConfig()" class="mt-2 bg-blue-800 text-white px-3 py-1 rounded font-bold">Guardar Claves de Administración</button>
         </section>
 
         <!-- ==================== VISTA JUGADOR ==================== -->
@@ -54,17 +54,17 @@
                     <h3 class="font-semibold text-gray-700 mb-2 text-sm">Confirmar Asistencia (10 Bs)</h3>
                     <form id="confirmForm" onsubmit="handlePlayerSubmit(event)" class="space-y-3">
                         <div>
-                            <label class="block text-xs text-gray-600 mb-1">Selecciona tu nombre:</label>
+                            <label class="block text-xs text-gray-600 mb-1">Selecciona tu nombre de la lista de 30 habilitados:</label>
                             <select id="playerSelect" required class="w-full p-2 border rounded text-sm">
                                 <option value="">Cargando lista de jugadores...</option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Comprobante de Pago (JPG/PNG/PDF):</label>
-                            <input type="file" id="receiptFile" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-xs border p-1 rounded">
+                            <input type="file" id="receiptFile" accept=".jpg,.jpeg,.png,.pdf" class="w-full text-xs border p-1 rounded">
                         </div>
-                        <button type="submit" id="btnSubmitPlayer" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-bold text-sm">
-                            Confirmar Asistencia / Anotarse en Reserva
+                        <button type="submit" id="btnSubmitPlayer" class="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded font-bold text-sm shadow">
+                            Confirmar Mi Asistencia
                         </button>
                     </form>
                 </div>
@@ -87,13 +87,13 @@
         <main id="adminView" class="hidden space-y-4">
             
             <div class="flex gap-2 border-b pb-2 no-print overflow-x-auto text-xs">
-                <button onclick="switchAdminTab('matchTab')" class="bg-blue-800 text-white px-3 py-1.5 rounded font-semibold whitespace-nowrap">Partido y Modificación Manual</button>
+                <button onclick="switchAdminTab('matchTab')" class="bg-blue-800 text-white px-3 py-1.5 rounded font-semibold whitespace-nowrap">Gestión Manual de Listas</button>
                 <button onclick="switchAdminTab('playersTab')" class="bg-gray-700 text-white px-3 py-1.5 rounded font-semibold whitespace-nowrap">Nómina de 30 Jugadores</button>
                 <button onclick="switchAdminTab('financesTab')" class="bg-gray-700 text-white px-3 py-1.5 rounded font-semibold whitespace-nowrap">Finanzas y Reporte</button>
                 <button onclick="switchAdminTab('historyTab')" class="bg-gray-700 text-white px-3 py-1.5 rounded font-semibold whitespace-nowrap">Historial</button>
             </div>
 
-            <!-- Tab 1: Editar Datos del Partido y Modificación Manual de Listas -->
+            <!-- Tab 1: Editar Datos del Partido y Modificación Manual -->
             <section id="matchTab" class="bg-white p-4 sm:p-6 rounded-lg shadow space-y-4">
                 <h2 class="text-base font-bold text-gray-800">⚙️ Modificar Programación del Partido</h2>
                 <form onsubmit="saveMatchDetails(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -109,30 +109,28 @@
                         <label class="block text-xs text-gray-600 mb-1">Lugar / Cancha:</label>
                         <input type="text" id="matchVenue" required class="w-full p-2 border rounded text-xs">
                     </div>
-                    <button type="submit" class="sm:col-span-3 bg-blue-800 text-white p-2 rounded font-bold text-xs">Actualizar Datos del Partido</button>
+                    <button type="submit" class="sm:col-span-3 bg-blue-800 text-white p-2 rounded font-bold text-xs">Guardar Datos del Partido en GitHub</button>
                 </form>
 
                 <hr class="my-4">
 
-                <h3 class="font-bold text-gray-800 text-sm">✏️ Modificación Manual de Listas (Agregar Jugadores Directo)</h3>
+                <h3 class="font-bold text-gray-800 text-sm">✏️ Modificación Manual de Listas (Añadir/Quitar Jugadores)</h3>
                 <form onsubmit="addManualPlayer(event)" class="flex flex-col sm:flex-row gap-2">
                     <input type="text" id="manualName" placeholder="Nombre completo del jugador" required class="flex-1 p-2 border rounded text-xs">
                     <select id="manualListType" class="p-2 border rounded text-xs">
                         <option value="confirmed">Lista de Confirmados</option>
                         <option value="reserve">Lista de Reserva</option>
                     </select>
-                    <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded font-bold text-xs">Agregar Manualmente</button>
+                    <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded font-bold text-xs">Agregar Directo a la Lista</button>
                 </form>
             </section>
 
             <!-- Tab 2: Gestionar Nómina de 30 Jugadores Habilitados -->
             <section id="playersTab" class="hidden bg-white p-4 sm:p-6 rounded-lg shadow">
                 <h2 class="text-base font-bold text-gray-800 mb-2">👥 Modificar Nómina de 30 Jugadores Habilitados</h2>
-                <p class="text-xs text-gray-500 mb-4">Puedes cambiar los nombres de la lista fija de 30 personas habilitadas para jugar.</p>
-                
                 <form onsubmit="saveRegisteredPlayers(event)">
                     <div id="playersGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4"></div>
-                    <button type="submit" class="bg-green-700 text-white px-4 py-2 rounded font-bold text-xs">Guardar Nómina en GitHub</button>
+                    <button type="submit" class="bg-green-700 text-white px-4 py-2 rounded font-bold text-xs">Guardar Nómina Oficial</button>
                 </form>
             </section>
 
@@ -240,12 +238,11 @@
             localStorage.setItem('gh_repo', config.repo);
             localStorage.setItem('gh_token', config.token);
 
-            showAlert("Configuración guardada correctamente.", "bg-green-100 text-green-800");
+            showAlert("Configuración del administrador guardada correctamente.", "bg-green-100 text-green-800");
             loadDataFromGitHub();
         }
 
         async function loadDataFromGitHub() {
-            // Auto-detectar usuario y repositorio si está en GitHub Pages
             const hostParts = window.location.hostname.split('.');
             const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
 
@@ -254,7 +251,6 @@
                 config.repo = config.repo || pathParts[0];
             }
 
-            // 1. Carga Pública Directa (Suficiente para los jugadores sin requerir Token)
             if (config.owner && config.repo) {
                 const rawPublicUrl = `https://${config.owner}.github.io/${config.repo}/data/state.json?t=${new Date().getTime()}`;
                 try {
@@ -265,13 +261,11 @@
                         return;
                     }
                 } catch (e) {
-                    console.log("Accediendo vía API...");
+                    console.log("Cargando vía API...");
                 }
             }
 
-            // 2. Carga vía API (Requerida para el administrador para obtener el SHA del archivo)
             if (!config.owner || !config.repo) {
-                showAlert("Para configurar por primera vez, ingresa en Modo Administrador.", "bg-blue-100 text-blue-800");
                 return;
             }
 
@@ -286,21 +280,18 @@
                     const decodedContent = decodeURIComponent(escape(atob(data.content)));
                     appState = JSON.parse(decodedContent);
                     renderAll();
-                } else {
-                    showAlert("No se encontró el archivo data/state.json en el repositorio.", "bg-red-100 text-red-800");
                 }
             } catch (err) {
-                showAlert("Error al conectar con GitHub.", "bg-red-100 text-red-800");
+                console.log("Error al consultar API");
             }
         }
 
         async function syncStateToGitHub(commitMessage) {
-            if (!config.owner || !config.repo || !config.token) {
-                showAlert("Se requiere configurar el Token en Modo Administrador para guardar cambios.", "bg-red-100 text-red-800");
+            if (!config.token) {
+                showAlert("Para consolidar cambios permanentes en GitHub, ingresa al Modo Administrador con tu clave.", "bg-yellow-100 text-yellow-800");
                 return false;
             }
 
-            // Asegurar que se tenga el SHA actual
             if (!fileSHA) {
                 const getUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/data/state.json`;
                 const getRes = await fetch(getUrl, { headers: { 'Authorization': `token ${config.token}` } });
@@ -330,17 +321,14 @@
                 if (response.ok) {
                     const resData = await response.json();
                     fileSHA = resData.content.sha;
-                    showAlert("Cambios guardados en GitHub con éxito.", "bg-green-100 text-green-800");
+                    showAlert("Lista actualizada y sincronizada en GitHub.", "bg-green-100 text-green-800");
                     renderAll();
                     return true;
-                } else {
-                    showAlert("Error al guardar. Verifica tu Token de GitHub.", "bg-red-100 text-red-800");
-                    return false;
                 }
             } catch (err) {
-                showAlert("Error de conexión al guardar.", "bg-red-100 text-red-800");
-                return false;
+                showAlert("Error de conexión al sincronizar.", "bg-red-100 text-red-800");
             }
+            return false;
         }
 
         function renderAll() {
@@ -411,7 +399,7 @@
             cList.innerHTML = appState.confirmed.map(p => `
                 <li class="flex justify-between items-center bg-gray-50 p-1.5 rounded border">
                     <span>${p}</span>
-                    <button onclick="removePlayer('${p}', 'confirmed')" class="text-xs text-red-600 hover:underline">Cancelar</button>
+                    ${currentRole === 'admin' ? `<button onclick="removePlayer('${p}', 'confirmed')" class="text-xs text-red-600 hover:underline">Eliminar</button>` : ''}
                 </li>
             `).join('');
 
@@ -419,7 +407,7 @@
             rList.innerHTML = appState.reserves.map(p => `
                 <li class="flex justify-between items-center bg-gray-50 p-1.5 rounded border">
                     <span>${p}</span>
-                    <button onclick="removePlayer('${p}', 'reserve')" class="text-xs text-orange-600 hover:underline">Cancelar</button>
+                    ${currentRole === 'admin' ? `<button onclick="removePlayer('${p}', 'reserve')" class="text-xs text-orange-600 hover:underline">Eliminar</button>` : ''}
                 </li>
             `).join('');
         }
@@ -429,16 +417,28 @@
             const name = document.getElementById('playerSelect').value;
             if (!name) return;
 
+            let targetList = "";
             if (appState.confirmed.length < 18) {
                 appState.confirmed.push(name);
+                targetList = "Lista Principal de Confirmados";
             } else if (appState.reserves.length < 6) {
                 appState.reserves.push(name);
+                targetList = "Lista de Reserva";
             } else {
                 alert("Los cupos principales y de reserva ya están completos.");
                 return;
             }
 
-            await syncStateToGitHub(`Confirmación de asistencia: ${name}`);
+            renderAll();
+
+            // Intenta guardar en GitHub si el Admin dejó su token guardado en el navegador local
+            const synced = await syncStateToGitHub(`Confirmación de ${name}`);
+            
+            if (synced) {
+                showAlert(`¡Excelente! ${name} ha quedado anotado en la ${targetList}.`, "bg-green-100 text-green-800");
+            } else {
+                showAlert(`¡Solicitud registrada localmente! ${name} fue añadido a la ${targetList}.`, "bg-green-100 text-green-800");
+            }
         }
 
         async function removePlayer(name, listType) {
@@ -452,6 +452,7 @@
                 appState.reserves = appState.reserves.filter(p => p !== name);
             }
 
+            renderAll();
             await syncStateToGitHub(`Remoción de jugador: ${name}`);
         }
 
@@ -492,6 +493,7 @@
             else appState.reserves.push(name);
 
             document.getElementById('manualName').value = '';
+            renderAll();
             await syncStateToGitHub(`Agregar jugador manual: ${name}`);
         }
 
@@ -525,11 +527,13 @@
             document.getElementById('expenseDesc').value = '';
             document.getElementById('expenseAmount').value = '';
 
+            renderAll();
             await syncStateToGitHub(`Registro de egreso: ${desc}`);
         }
 
         async function deleteExpense(index) {
             appState.expenses.splice(index, 1);
+            renderAll();
             await syncStateToGitHub("Eliminación de egreso");
         }
 
@@ -566,6 +570,7 @@
             appState.reserves = [];
             appState.expenses = [];
 
+            renderAll();
             await syncStateToGitHub("Archivado de partido y reinicio de listas");
         }
 
